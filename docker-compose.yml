@@ -23,9 +23,9 @@ services:
       context: .
       dockerfile: docker/Dockerfile.jupyterhub
       args:
-        JUPYTERHUB_VERSION: 1.2
+        JUPYTERHUB_VERSION: 1.0.0
     restart: always
-    image: jupyterhub
+    #image: jupyterhub
     container_name: jupyterhub
     volumes:
       # Bind Docker socket on the host so we can connect to the daemon from
@@ -35,6 +35,7 @@ services:
       #- "data:${DATA_VOLUME_CONTAINER}"
     ports:
       - "443:443"
+      - "8000:8000"
     links:
       - hub-db
     environment:
@@ -46,8 +47,11 @@ services:
       DOCKER_NOTEBOOK_DIR: /notebooks
       POSTGRES_DB: jupyterhub
       POSTGRES_HOST: hub-db
-    env_file:
-      - secrets/postgres.env
+      POSTGRES_PASSWORD: jupyterhub_pass
+      POSTGRES_USER: jupyterhub
+      POSTGRES_PORT: 5432
+      #env_file:
+        #- secrets/postgres.env
         #- secrets/oauth.env
     command: >
       jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
