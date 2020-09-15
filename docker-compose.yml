@@ -1,0 +1,70 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
+# JupyterHub docker-compose configuration file
+version: "2"
+
+services:
+  hub-db:
+    image: postgres:10.5
+    container_name: jupyterhub-db
+    restart: always
+    environment:
+      POSTGRES_DB: jupyterhub
+    env_file:
+      - secrets/postgres.env
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  hub:
+    depends_on:
+      - hub-db
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.jupyterhub
+      args:
+        JUPYTERHUB_VERSION: 1.2
+    restart: always
+    image: jupyterhub
+    container_name: jupyterhub
+    volumes:
+      # Bind Docker socket on the host so we can connect to the daemon from
+      # within the container
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      # Bind Docker volume on host for JupyterHub database and cookie secrets
+      #- "data:${DATA_VOLUME_CONTAINER}"
+    ports:
+      - "443:443"
+    links:
+      - hub-db
+    environment:
+      # All containers will join this network
+      DOCKER_NETWORK_NAME: jupyterhub
+      # JupyterHub will spawn this Notebook image for users
+      DOCKER_NOTEBOOK_IMAGE: jupyterhub/singleuser
+      # Notebook directory inside user image
+      DOCKER_NOTEBOOK_DIR: /notebooks
+      POSTGRES_DB: jupyterhub
+      POSTGRES_HOST: hub-db
+    env_file:
+      - secrets/postgres.env
+        #- secrets/oauth.env
+    command: >
+      jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
+
+volumes:
+  jupyterhub_data:
+  jupyterhub_db:
+  db:
+    #data:
+    #  external:
+    #    name: jupyterhub_data
+    #db:
+    #  external:
+    #    name: jupyterhub_db
+
+#networks:
+#name: jupyterhub
+#default:
+#  external:
+#    name: jupyterhub
