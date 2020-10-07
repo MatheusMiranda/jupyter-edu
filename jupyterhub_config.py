@@ -12,15 +12,20 @@ c = get_config()
 
 # Spawn single-user servers as Docker containers
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
+c.Spawner.default_url = '/lab'
+c.Spawner.cmd = ['jupyter-labhub']
+# c.Spawner.args = ['allow-root']
 # Spawn containers from this image
 c.DockerSpawner.container_image = os.environ['DOCKER_NOTEBOOK_IMAGE']
+
+# spawn_cmd = ['jupyter-labhub']
+#c.DockerSpawner.extra_create_kwargs.update({ 'command': spawn_cmd })
+
 # JupyterHub requires a single-user instance of the Notebook server, so we
 # default to using the `start-singleuser.sh` script included in the
 # jupyter/docker-stacks *-notebook images as the Docker run command when
 # spawning containers.  Optionally, you can override the Docker run command
 # using the DOCKER_SPAWN_CMD environment variable.
-spawn_cmd = 'jupyter-lab'
-c.DockerSpawner.extra_create_kwargs.update({ 'command': spawn_cmd })
 # Connect containers to this Docker network
 network_name = os.environ['DOCKER_NETWORK_NAME']
 c.DockerSpawner.use_internal_ip = True
@@ -33,6 +38,8 @@ c.DockerSpawner.extra_host_config = { 'network_mode': network_name }
 # We follow the same convention.
 notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
 c.DockerSpawner.notebook_dir = notebook_dir
+c.NotebookApp.notebook_dir = notebook_dir
+#c.Spawner.notebook_dir = '~/notebooks'
 # Mount the real user's Docker volume on the host to the notebook user's
 # notebook directory in the container
 c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }
@@ -73,10 +80,12 @@ c.JupyterHub.db_url = 'postgresql://{user}:{password}@{host}/{db}'.format(
     db=os.environ['POSTGRES_DB'],
 )
 
+
+
 # Whitlelist users and admins
-#c.Authenticator.whitelist = whitelist = set()
-#c.Authenticator.admin_users = admin = set()
-#c.JupyterHub.admin_access = True
+c.Authenticator.whitelist = whitelist = set()
+c.Authenticator.admin_users = admin = set()
+c.JupyterHub.admin_access = True
 #pwd = os.path.dirname(__file__)
 #with open(os.path.join(pwd, 'userlist')) as f:
 #    for line in f:
