@@ -2,7 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 # JupyterHub docker-compose configuration file
-version: "2"
+version: "3.5"
 
 services:
   hub-db:
@@ -15,39 +15,50 @@ services:
       - secrets/postgres.env
     volumes:
       - db:/var/lib/postgresql/data
+    networks:
+      - jupyterhub
 
   hub:
     depends_on:
       - hub-db
     build:
       context: .
-      dockerfile: docker/Dockerfile.jupyterhub
+      dockerfile: docker/Dockerfile.jupyterhub_img
       args:
-        JUPYTERHUB_VERSION: 1.2
+        JUPYTERHUB_VERSION: 1.0.0
     restart: always
-    image: jupyterhub
+    #image: jupyterhub
     container_name: jupyterhub
     volumes:
       # Bind Docker socket on the host so we can connect to the daemon from
       # within the container
+      - "./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py"
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
       # Bind Docker volume on host for JupyterHub database and cookie secrets
       #- "data:${DATA_VOLUME_CONTAINER}"
     ports:
       - "443:443"
+      - "8008:8000"
     links:
       - hub-db
+    networks:
+      - jupyterhub
     environment:
       # All containers will join this network
       DOCKER_NETWORK_NAME: jupyterhub
       # JupyterHub will spawn this Notebook image for users
-      DOCKER_NOTEBOOK_IMAGE: jupyterhub/singleuser
+      # DOCKER_NOTEBOOK_IMAGE: jupyterhub/singleuser
+      #DOCKER_NOTEBOOK_IMAGE: jupyter/datascience-notebook
+      DOCKER_NOTEBOOK_IMAGE: jupyterlab_img
       # Notebook directory inside user image
       DOCKER_NOTEBOOK_DIR: /notebooks
       POSTGRES_DB: jupyterhub
       POSTGRES_HOST: hub-db
-    env_file:
-      - secrets/postgres.env
+      POSTGRES_PASSWORD: jupyterhub_pass
+      POSTGRES_USER: jupyterhub
+      POSTGRES_PORT: 5432
+      #env_file:
+        #- secrets/postgres.env
         #- secrets/oauth.env
     command: >
       jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
@@ -63,8 +74,9 @@ volumes:
     #  external:
     #    name: jupyterhub_db
 
-#networks:
-#name: jupyterhub
+networks:
+  jupyterhub:
+    name: jupyterhub
 #default:
 #  external:
 #    name: jupyterhub
